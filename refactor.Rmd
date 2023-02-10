@@ -3,10 +3,11 @@ title: "DAISIE Refactor"
 author: "Pedro Santos Neves"
 date: "10-02-2023"
 output: 
-    ioslides_presentation:
-        widescreen: true
-        logo: logo.png
-        css: styles.css
+    ioslides_presentation: 
+      widescreen: yes
+      logo: logo.png
+      css: styles.css
+      keep_md: yes
 runtime: shiny
 ---
 
@@ -40,6 +41,30 @@ knitr::kable(cloc::cloc_pkg(source = "C:/code/DAISIE"))[1:7]
 * Accessed primarily (but not exclusively) via the `DAISIE_ML_*()` functions
 * 5 (6 if redundant `DAISIE_ML()` is counted) functions, common elements in the function tree
 * General use of many arguments, defaults prevalent along function trees
+* Very deep call tree
+
+## Inference
+
+```
+1. └─DAISIE:::DAISIE_ML1(...)
+  2.   └─DDD::optimizer(...) at DAISIE/R/DAISIE_ML1.R:330:2
+  3.     ├─base::suppressWarnings(...)
+  4.     │ └─base::withCallingHandlers(...)
+  5.     ├─subplex::subplex(...)
+  6.     │ └─base::tryCatch(...)
+  7.     │   └─base (local) tryCatchList(expr, classes, parentenv, handlers)
+  8.     │     └─base (local) tryCatchOne(expr, names, parentenv, handlers[[1L]])
+  9.     │       └─base (local) doTryCatch(return(expr), name, parentenv, handler)
+ 10.     └─DDD (local) `<fn>`(...)
+ 11.       └─DAISIE (local) fun(trparsopt = trparsopt, ...)
+ 12.         └─DAISIE::DAISIE_loglik_all(...) at DAISIE/R/DAISIE_ML1.R:53:6
+ 13.           └─DAISIE:::DAISIE_loglik_CS_choice(...) at DAISIE/R/DAISIE_loglik_CS.R:1023:6
+ 14.             └─DAISIE:::DAISIE_loglik(...) at DAISIE/R/DAISIE_loglik_CS.R:711:4
+ 15.               └─DAISIE:::DAISIE_integrate(...) at DAISIE/R/DAISIE_loglik_CS.R:650:14
+ 16.                 └─DAISIE:::DAISIE_integrate_const(...) at DAISIE/R/DAISIE_loglik_CS.R:1196:4
+ 17.                   └─DAISIE:::DAISIE_ode_cs(...) at DAISIE/R/DAISIE_loglik_CS.R:1241:4
+ 18.                     └─lobstr::cst() at DAISIE/R/DAISIE_loglik_CS.R:1343:2
+```
 
 ## Simulation
 
@@ -57,7 +82,7 @@ knitr::kable(cloc::cloc_pkg(source = "C:/code/DAISIE"))[1:7]
 
 ## Dependencies
 
-```{r package dependencies2, warning=FALSE, echo=FALSE}
+```{r package dependencies2, echo=FALSE, message=FALSE, warning=FALSE}
 pak::pkg_deps_tree(pkg = "rsetienne/DAISIE", dependencies = TRUE)
 ```
 
