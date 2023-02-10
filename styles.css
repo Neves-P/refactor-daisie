@@ -1,0 +1,4 @@
+slides > slide {
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}

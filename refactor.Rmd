@@ -1,0 +1,155 @@
+---
+title: "DAISIE Refactor"
+author: "Pedro Santos Neves"
+date: "10-02-2023"
+output: 
+    ioslides_presentation:
+        widescreen: true
+        logo: logo.png
+        css: styles.css
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library("DAISIE")
+library(CodeDepends)
+```
+
+## Index
+* Overview / status
+  + Inference, simulation, plotting
+  + Compiled/foreign code (C++, FORTRAN)
+  + Dependencies
+* Improvements
+  + Interface
+  + Maintainability
+  + Style
+* Feedback
+
+# Overview / status
+
+## DAISIE at a glance
+
+```{r}
+knitr::kable(cloc::cloc_pkg(source = "C:/code/DAISIE"))[1:7]
+```
+
+## Inference
+
+* Accessed primarily (but not exclusively) via the `DAISIE_ML_*()` functions
+* 5 (6 if redundant `DAISIE_ML()` is counted) functions, common elements in the function tree
+* General use of many arguments, defaults prevalent along function trees
+
+## Simulation
+
+* Accessed via the `DAISIE_sim_*()` functions
+* 7 (8, if redundant `DAISIE_sim()` is counted) functions, common elements in the function tree
+
+## Plotting
+
+* Accessed via the `DAISIE_plot_*()` functions
+* 4 functions, one part of function tree of simulation code
+
+## Acessory functions
+
+* `DAISIE_dataprep()`, `DAISIE_probdist()` etc
+
+## Dependencies
+
+```{r package dependencies2, warning=FALSE, echo=FALSE}
+pak::pkg_deps_tree(pkg = "rsetienne/DAISIE", dependencies = TRUE)
+```
+
+## Dependencies
+
+```{r package dependencies, echo=FALSE, message=FALSE, warning=FALSE}
+depgraph::plot_dependency_graph(
+  pkg = "C:/code/DAISIE",
+  suggests = FALSE,
+  option = "cividis"
+)
+```
+
+## Dependencies
+
+```{r package dependencies3, warning=FALSE, echo=FALSE}
+cran_db <- cranly::clean_CRAN_db()
+package_network <- cranly::build_network(cran_db)
+dep_table <- cranly::compute_dependence_tree(package_network, "DAISIE")
+
+knitr::kable(dep_table |> dplyr::group_by(generation) |> dplyr::count())
+```
+
+## Dependencies
+
+* High number of dependencies
+* Some package dependencies themselves have a high number of upstream dependencies
+* To maintain the package on CRAN, all dependencies on Imports, Depends and Suggests must be equally available
+* Critical dependencies include Rcpp, deSolve, DDD (for ML optimization, long term free-standing package?)
+* The lower the number of dependencies, higher reliability
+
+## Compiled/foreign code (C++, FORTRAN)
+
+* Numerical integration of ODE system implemented via R, C++ (using BOOST libraries) and FORTRAN code
+* Redundant methods are helpful to compare with each other and as fallbacks when one fails
+* Increase maintenance cost. Arguably breaks DRY rule.
+
+# Improvements
+
+## Interface
+```
+DAISIE_sim_cr(
+  time,
+  M,
+  pars,
+  replicates,
+  divdepmodel = "CS",
+  nonoceanic_pars = c(0, 0),
+  num_guilds = NULL,
+  prop_type2_pool = NA,
+  replicates_apply_type2 = TRUE,
+  sample_freq = 25,
+  plot_sims = TRUE,
+  hyper_pars = create_hyper_pars(d = 0, x = 0),
+  area_pars = create_area_pars(max_area = 1, current_area = 1, proportional_peak_t = 0,
+    total_island_age = 0, sea_level_amplitude = 0, sea_level_frequency = 0,
+    island_gradient_angle = 0),
+  cond = 0,
+  verbose = TRUE,
+  ...
+)
+```
+
+## Interface
+
+* Standardize argument names: choose and rigidly enforce style guide
+* Complex arguments should always be named (lists) at the interface level, and as much as possible in inner functions
+* Helper functions for complex arguments are an option (e.g., `create_hyper_pars()`)
+  + More space for long form documentation, defaults and ease of testing
+* Don't export many currently exported functions
+
+## Maintainability
+
+* Defaults *only* present in user interface
+* Deprecate R and FORTAN implementations to a separate package
+  + Allows code be kept for tests
+  + Same maintenance cost
+* Remove dependencies. Consider removing most if not all plotting functions
+* Rename ambiguously named functions (i.e., `DAISIE_ML1()`, `DAISIE_ML2()`, etc.)
+* Trim down repeated (nearly) identical portions of code (e.g. `DAISIE_ML_*()` functions until `DAISIE_loglik()`)
+
+## Maintainabilty
+
+```{r fig.height=20, fig.width=20, message=FALSE, warning=FALSE}
+gg <- makeCallGraph("package:DAISIE")
+if(require(Rgraphviz)) {
+    gg = layoutGraph(gg, layoutType = "circo")
+    graph.par(list(nodes = list(fontsize = 55)))
+} 
+renderGraph(gg)
+```
+
+## Feedback
+
+* Thanks for listening! Any comments?
